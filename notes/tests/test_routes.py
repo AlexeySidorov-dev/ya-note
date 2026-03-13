@@ -7,7 +7,7 @@ from http import HTTPStatus
 
 from notes.models import Note
 
-# Получаем модель пользователя.
+# Получаем модель пользователя:
 User = get_user_model()
 
 
@@ -18,9 +18,9 @@ class TestRoutes(TestCase):
     def setUpTestData(cls):
         """Создание фикстур."""
         # Создаём двух пользователей с разными именами:
-        cls.author = User.objects.create(username='Лев Толстой')
-        cls.reader = User.objects.create(username='Читатель простой')
-        # Создание заметки от имени автора.
+        cls.author = User.objects.create(username='Автор')
+        cls.reader = User.objects.create(username='Читатель')
+        # Создание заметки от имени автора:
         cls.notes = Note.objects.create(
             title='Тест',
             text='Текст для теста',
@@ -38,7 +38,7 @@ class TestRoutes(TestCase):
         )
         for name in urls:
             with self.subTest(name=name):
-                url = reverse(name)
+                url = reverse(name)  # Получаем ссылку.
                 if name == 'users:logout':
                     response = self.client.post(url)  # Выполняем post запрос.
                 else:
@@ -56,16 +56,17 @@ class TestRoutes(TestCase):
         self.client.force_login(self.author)
         for name in urls:
             with self.subTest(name=name):
-                url = reverse(name)
-                response = self.client.get(url)
+                url = reverse(name)  # Получаем ссылку.
+                response = self.client.get(url)  # Выполняем get запрос.
+                # Проверяем статус-код:
                 self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_pages_availability_for_author(self):
         """Доступность страниц по правам пользователя."""
         users_statuses = (
-            # автор комментария должен получить ответ OK
+            # автор комментария должен получить ответ OK.
             (self.author, HTTPStatus.OK),
-            # читатель должен получить ответ NOT_FOUND
+            # читатель должен получить ответ NOT_FOUND.
             (self.reader, HTTPStatus.NOT_FOUND),
         )
         urls = (
@@ -78,13 +79,14 @@ class TestRoutes(TestCase):
             self.client.force_login(user)
             for name, slug in urls:
                 with self.subTest(user=user, name=name):
-                    url = reverse(name, args=slug)
-                    response = self.client.get(url)
+                    url = reverse(name, args=slug)  # Получаем ссылку.
+                    response = self.client.get(url)  # Выполняем get запрос.
+                    # Проверяем статус-код:
                     self.assertEqual(response.status_code, status)
 
     def test_redirect_for_anonymous_client(self):
-        """Перенаправления для неавторизованного пользователя."""
-        # Имена страниц, с которых ожидаем перенаправление на страницу логина.
+        """Проверка редиректа для неавторизованного пользователя."""
+        # Имена страниц, с которых ожидаем перенаправление на страницу логина:
         urls = (
             ('notes:add', None),
             ('notes:edit', (self.notes.slug,)),
@@ -96,17 +98,18 @@ class TestRoutes(TestCase):
 
         for name, slug in urls:
             with self.subTest(name=name):
-                # Сохраняем адрес страницы логина (перенаправление на нее).
+                # Сохраняем адрес страницы логина (перенаправление на нее):
                 login_url = reverse('users:login')
-                url = reverse(name, args=slug)
-                redirect_url = f'{login_url}?next={url}'
-                response = self.client.get(url)
+                url = reverse(name, args=slug)  # Получаем ссылку.
+                redirect_url = f'{login_url}?next={url}'  # Якорь.
+                response = self.client.get(url)  # Выполняем get запрос.
+                # Проверяем редирект:
                 self.assertRedirects(response, redirect_url)
 
 
 class TestRedirect(TestCase):
     """Тестирование редиректов при действиях с заметками."""
-    # Тексты для заметок вынесем в атрибуты класса.
+    # Тексты для заметок вынесем в атрибуты класса:
     NODE_TITLE = 'Заметка'
     NEW_NODE_TITLE = 'Заметка редактированная'
     NODE_TEXT = 'Текст заметки'
@@ -115,23 +118,22 @@ class TestRedirect(TestCase):
     @classmethod
     def setUpTestData(cls):
         """Создание фикстур."""
-        # Создадим пользователя автора.
+        # Создаем пользователя автора:
         cls.author = User.objects.create(username='Автор')
-        # Создаём клиент для пользователя-автора.
+        # Создаём клиент для пользователя-автора:
         cls.author_client = Client()
-        # "Логиним" пользователя в клиенте.
+        # "Логиним" автора в клиенте:
         cls.author_client.force_login(cls.author)
-        # Сохраняем адрес страницы для перенаправления после успешного
-        # действия с заметкой.
+        # Страница редиректа после успешного действия с заметкой:
         cls.redirect_url = reverse('notes:success')
 
-        # Создаём заметку, которую будем редактировать и удалять в тестах.
+        # Создаём заметку, которую будем редактировать и удалять в тестах:
         cls.note = Note.objects.create(
             title=cls.NODE_TITLE,
             text=cls.NODE_TEXT,
             author=cls.author
         )
-        # Данные для POST-запроса при создании и редактировании заметки.
+        # Данные для POST-запроса при создании и редактировании заметки:
         cls.form_data = {'title': cls.NEW_NODE_TITLE,
                          'text': cls.NEW_NODE_TEXT}
 
@@ -139,19 +141,25 @@ class TestRedirect(TestCase):
         """Редирект после создания заметки."""
         with self.subTest():
             url = reverse('notes:add')
+            # POST запрос от автора на создание заметки:
             response = self.author_client.post(url, data=self.form_data)
+            # Проверяем редирект:
             self.assertRedirects(response, self.redirect_url)
 
     def test_redirect_after_edit_note(self):
         """Редирект после редактирования заметки."""
         with self.subTest():
             url = reverse('notes:edit', args=(self.note.slug,))
+            # POST запрос от автора на редактирование заметки:
             response = self.author_client.post(url, data=self.form_data)
+            # Проверяем редирект:
             self.assertRedirects(response, self.redirect_url)
 
     def test_redirect_after_delete_note(self):
         """Редирект после удаления заметки."""
         with self.subTest():
             url = reverse('notes:delete', args=(self.note.slug,))
+            # DELETE запрос от автора на удаление заметки:
             response = self.author_client.delete(url)
+            # Проверяем редирект:
             self.assertRedirects(response, self.redirect_url)

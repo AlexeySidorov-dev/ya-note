@@ -9,17 +9,17 @@ from django.urls import reverse
 
 
 @pytest.mark.parametrize(
-    'name',  # Имя параметра функции.
-    # Значения, которые будут передаваться в name.
+    'name',
     ('notes:home', 'users:login', 'users:signup', 'users:logout')
 )
 def test_pages_availability_for_anonymous_user(client, name):
     """Доступность страниц для неавторизованного пользователя."""
-    url = reverse(name)  # Получаем ссылку на нужный адрес.
+    url = reverse(name)  # Получаем ссылку.
     if name == 'users:logout':
         response = client.post(url)  # Выполняем post запрос.
     else:
         response = client.get(url)  # Выполняем get запрос.
+    # Проверяем статус-код:
     assert response.status_code == HTTPStatus.OK
 
 
@@ -29,8 +29,9 @@ def test_pages_availability_for_anonymous_user(client, name):
 )
 def test_pages_availability_for_auth_user(not_author_client, name):
     """Доступность страниц для авторизованного пользователя."""
-    url = reverse(name)
-    response = not_author_client.get(url)
+    url = reverse(name)  # Получаем ссылку.
+    response = not_author_client.get(url)  # Выполняем get запрос.
+    # Проверяем статус-код:
     assert response.status_code == HTTPStatus.OK
 
 
@@ -48,8 +49,9 @@ def test_pages_availability_for_auth_user(not_author_client, name):
 def test_pages_availability_for_different_users(
         parametrized_client, name, slug_for_args, expected_status):
     """Доступность страниц по правам пользователя."""
-    url = reverse(name, args=slug_for_args)
-    response = parametrized_client.get(url)
+    url = reverse(name, args=slug_for_args)  # Получаем ссылку.
+    response = parametrized_client.get(url)  # Выполняем get запрос.
+    # Проверяем статус-код:
     assert response.status_code == expected_status
 
 
@@ -64,14 +66,35 @@ def test_pages_availability_for_different_users(
         ('notes:list', None),
     ),
 )
-# Передаём в тест анонимный клиент, name проверяемых страниц и args:
-def test_redirects(client, name, args):
+def test_redirects_for_anonymous_user(client, name, args):
     """Проверка редиректа для неавторизованного пользователя."""
+    # Сохраняем адрес страницы логина (перенаправление на нее).
     login_url = reverse('users:login')
-    # Формируем URL в зависимости от того, передан ли объект заметки:
-    url = reverse(name, args=args)
-    expected_url = f'{login_url}?next={url}'
-    response = client.get(url)
+    url = reverse(name, args=args)  # Получаем ссылку.
+    expected_url = f'{login_url}?next={url}'  # Якорь.
+    response = client.get(url)  # Выполняем get запрос.
     # Ожидаем, что со всех проверяемых страниц анонимный клиент
     # будет перенаправлен на страницу логина:
     assertRedirects(response, expected_url)
+
+
+@pytest.mark.parametrize(
+    'name, args',
+    (
+        ('notes:add', None),  # Создание заметки.
+        ('notes:edit', lf('slug_for_args')),  # Редактирование заметки.
+        ('notes:delete', lf('slug_for_args')),   # Удаление заметки.
+    ),
+)
+def test_redirect_after_change_note(author_client, form_data, name, args):
+    """Редирект после действий с заметкой."""
+    url = reverse(name, args=args)  # Получаем ссылку.
+    # Страница редиректа после успешного действия с заметкой:
+    redirect_url = reverse('notes:success')
+    # Запросы от автора на действие с заметкой:
+    if name == 'notes:delete':
+        response = author_client.delete(url)  # DELETE запрос.
+    else:
+        response = author_client.post(url, data=form_data)  # POST запрос.
+    # Проверяем редирект:
+    assertRedirects(response, redirect_url)
