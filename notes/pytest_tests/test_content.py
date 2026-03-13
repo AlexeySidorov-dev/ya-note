@@ -8,22 +8,19 @@ from notes.forms import NoteForm
 
 
 @pytest.mark.parametrize(
-    # Задаём названия для параметров.
     'parametrized_client, note_in_list',
     (
-        # Передаём фикстуры в параметры при помощи "ленивых фикстур".
         (lf('author_client'), True),
         (lf('not_author_client'), False),
     )
 )
-# Используем фикстуру заметки и параметры из декоратора.
-def test_notes_list_for_different_users(
-    note, parametrized_client, note_in_list
-):
+def test_notes_list_for_different_users(note, parametrized_client,
+                                        note_in_list):
     """В списке отображаются только заметки автора и проверка контекста."""
     url = reverse('notes:list')
-    # Выполняем запрос от имени параметризованного клиента.
+    # Выполняем запрос от имени параметризованного клиента:
     response = parametrized_client.get(url)
+    # Получаем из контекста список объектов:
     object_list = response.context['object_list']
     # Проверяем истинность утверждения "заметка есть в списке".
     assert (note in object_list) is note_in_list
@@ -38,9 +35,9 @@ def test_notes_list_for_different_users(
 )
 def test_pages_contains_form(author_client, name, args):
     """При создании и редактировании заметки автору передается форма."""
-    # Формируем URL.
+    # Формируем URL:
     url = reverse(name, args=args)
-    # Запрашиваем нужную страницу.
+    # POST запрос от имени автора на сформированную страницу:
     response = author_client.get(url)
     # Проверяем, есть ли объект формы в словаре контекста.
     assert 'form' in response.context
@@ -50,7 +47,7 @@ def test_pages_contains_form(author_client, name, args):
 
 def test_detail_note(author_client, slug_for_args, note):
     """Контекст на странице заметки."""
-    # Сохраняем в переменную адрес страницы с заметкой.
+    # Страница отдельной заметки.
     url = reverse('notes:detail', args=slug_for_args)
     # Загружаем страницу с заметкой.
     response = author_client.get(url)
@@ -61,13 +58,13 @@ def test_detail_note(author_client, slug_for_args, note):
 
 
 def test_delete_note(author_client, slug_for_args):
-    """Автору передается контекст при удалении заметки."""
-    # Сохраняем в переменную адрес страницы удаления заметки.
-    url = reverse('notes:detail', args=slug_for_args)
-    # Загружаем страницу с заметкой.
-    response = author_client.get(url)
-    # Проверяем, что контент передается.
-    assert response.context
+    """Автору не передается контекст при удалении заметки."""
+    # Страница удаления заметки:
+    url = reverse('notes:delete', args=slug_for_args)
+    # DELETE запрос от автора на удаление заметки:
+    response = author_client.delete(url)
+    # Проверяем, что контекст не передается.
+    assert response.context is None
 
 
 @pytest.mark.parametrize(
@@ -82,6 +79,9 @@ def test_delete_note(author_client, slug_for_args):
 )
 def test_anonymous_client_has_not_form(client, name, args):
     """Анонимному пользователю контекст не передается."""
+    # Формируем URL:
     url = reverse(name, args=args)
+    # POST запрос от имени анонима на сформированную страницу:
     response = client.get(url)
+    # Проверяем, что контекст не передается:
     assert response.context is None

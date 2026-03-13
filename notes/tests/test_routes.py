@@ -38,7 +38,7 @@ class TestRoutes(TestCase):
         )
         for name in urls:
             with self.subTest(name=name):
-                url = reverse(name)  # Получаем ссылку.
+                url = reverse(name)  # Формируем URL.
                 if name == 'users:logout':
                     response = self.client.post(url)  # Выполняем post запрос.
                 else:
@@ -56,7 +56,7 @@ class TestRoutes(TestCase):
         self.client.force_login(self.author)
         for name in urls:
             with self.subTest(name=name):
-                url = reverse(name)  # Получаем ссылку.
+                url = reverse(name)  # Формируем URL.
                 response = self.client.get(url)  # Выполняем get запрос.
                 # Проверяем статус-код:
                 self.assertEqual(response.status_code, HTTPStatus.OK)
@@ -79,7 +79,7 @@ class TestRoutes(TestCase):
             self.client.force_login(user)
             for name, slug in urls:
                 with self.subTest(user=user, name=name):
-                    url = reverse(name, args=slug)  # Получаем ссылку.
+                    url = reverse(name, args=slug)  # Формируем URL.
                     response = self.client.get(url)  # Выполняем get запрос.
                     # Проверяем статус-код:
                     self.assertEqual(response.status_code, status)
@@ -100,7 +100,7 @@ class TestRoutes(TestCase):
             with self.subTest(name=name):
                 # Сохраняем адрес страницы логина (перенаправление на нее):
                 login_url = reverse('users:login')
-                url = reverse(name, args=slug)  # Получаем ссылку.
+                url = reverse(name, args=slug)  # Формируем URL.
                 redirect_url = f'{login_url}?next={url}'  # Якорь.
                 response = self.client.get(url)  # Выполняем get запрос.
                 # Проверяем редирект:

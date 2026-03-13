@@ -14,7 +14,7 @@ from django.urls import reverse
 )
 def test_pages_availability_for_anonymous_user(client, name):
     """Доступность страниц для неавторизованного пользователя."""
-    url = reverse(name)  # Получаем ссылку.
+    url = reverse(name)  # Формируем URL.
     if name == 'users:logout':
         response = client.post(url)  # Выполняем post запрос.
     else:
@@ -29,7 +29,7 @@ def test_pages_availability_for_anonymous_user(client, name):
 )
 def test_pages_availability_for_auth_user(not_author_client, name):
     """Доступность страниц для авторизованного пользователя."""
-    url = reverse(name)  # Получаем ссылку.
+    url = reverse(name)  # Формируем URL.
     response = not_author_client.get(url)  # Выполняем get запрос.
     # Проверяем статус-код:
     assert response.status_code == HTTPStatus.OK
@@ -49,7 +49,7 @@ def test_pages_availability_for_auth_user(not_author_client, name):
 def test_pages_availability_for_different_users(
         parametrized_client, name, slug_for_args, expected_status):
     """Доступность страниц по правам пользователя."""
-    url = reverse(name, args=slug_for_args)  # Получаем ссылку.
+    url = reverse(name, args=slug_for_args)  # Формируем URL.
     response = parametrized_client.get(url)  # Выполняем get запрос.
     # Проверяем статус-код:
     assert response.status_code == expected_status
@@ -70,7 +70,7 @@ def test_redirects_for_anonymous_user(client, name, args):
     """Проверка редиректа для неавторизованного пользователя."""
     # Сохраняем адрес страницы логина (перенаправление на нее).
     login_url = reverse('users:login')
-    url = reverse(name, args=args)  # Получаем ссылку.
+    url = reverse(name, args=args)  # Формируем URL.
     expected_url = f'{login_url}?next={url}'  # Якорь.
     response = client.get(url)  # Выполняем get запрос.
     # Ожидаем, что со всех проверяемых страниц анонимный клиент
@@ -88,7 +88,7 @@ def test_redirects_for_anonymous_user(client, name, args):
 )
 def test_redirect_after_change_note(author_client, form_data, name, args):
     """Редирект после действий с заметкой."""
-    url = reverse(name, args=args)  # Получаем ссылку.
+    url = reverse(name, args=args)  # Формируем URL.
     # Страница редиректа после успешного действия с заметкой:
     redirect_url = reverse('notes:success')
     # Запросы от автора на действие с заметкой:

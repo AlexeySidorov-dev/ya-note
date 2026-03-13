@@ -1,15 +1,12 @@
 """Фикстуры pytest."""
 
 import pytest
-# Импортируем класс клиента.
 from django.test.client import Client
 
-# Импортируем модель заметки, чтобы создать экземпляр.
 from notes.models import Note
 
 
 @pytest.fixture
-# Используем встроенную фикстуру для модели пользователей django_user_model.
 def author(django_user_model):
     """Создаем пользователя автора."""
     return django_user_model.objects.create(username='Автор')
@@ -61,7 +58,7 @@ def slug_for_args(note):
 
 @pytest.fixture
 def form_data():
-    """Подготавливаем форму для создания заметки."""
+    """Подготавливаем форму для действия с заметкой."""
     return {
         'title': 'Новый заголовок',
         'text': 'Новый текст',
