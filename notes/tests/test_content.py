@@ -1,4 +1,4 @@
-"""Тестирование контента проекта yanote."""
+"""Тестирование (unittest) контента проекта yanote."""
 
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
@@ -13,8 +13,6 @@ User = get_user_model()
 
 class TestNotes(TestCase):
     """Тестирование страницы заметок пользователя."""
-    # Количество заметок автора сохраняем в атрибут класса.
-    COUNT_NOTES = 3
 
     @classmethod
     def setUpTestData(cls):
@@ -22,49 +20,36 @@ class TestNotes(TestCase):
         # Создаем два пользователя и по 3 заметки от каждого пользователя.
         cls.author = User.objects.create(username='Автор')
         cls.reader = User.objects.create(username='Читатель')
-        # Создаем заметки по одной, чтобы сработал метод save().
-        users = (cls.author, cls.reader,)
-        for user in users:
-            for index in range(cls.COUNT_NOTES):
-                Note.objects.create(
-                    title=f'Заметка {index} от автора {user}',
-                    text='Текст заметки',
-                    author=user
-                )
-
-        # Создаём клиент для автора.
+        # Создаем замету для автора.
+        cls.note = Note.objects.create(
+            title='Заметка от автора',
+            text='Текст заметки',
+            author=cls.author
+        )
+        # Создаём клиент для пользователей.
         cls.author_client = Client()
-        # "Логиним" автора в клиенте.
+        cls.reader_client = Client()
+        # "Логиним" пользователей в клиенте.
         cls.author_client.force_login(cls.author)
-        # Загрузим из БД первую заметку автора.
-        cls.note = Note.objects.filter(author=cls.author).first()
+        cls.reader_client.force_login(cls.reader)
 
     def test_notes_only_author(self):
-        """В списке отображаются только заметки автора."""
+        """В списке отображаются только заметки автора и проверка контекста."""
+        # Кортеж пользователей с булевым значением для проверки.
+        users = (
+            (self.author_client, True),
+            (self.reader_client, False),
+        )
         # Сохраняем в переменную адрес страницы с заметками.
-        list_notes_url = reverse('notes:list')
-        # Загружаем страницу с заметками.
-        response = self.author_client.get(list_notes_url)
-        # Получаем объекты из контекста.
-        object_list = response.context['object_list']
-        # Получаем заметки только автора из БД.
-        notes_author = Note.objects.filter(author=self.author)
-        # Сравниваем отсортированные queryset.
-        self.assertQuerySetEqual(object_list.order_by('id'),
-                                 notes_author.order_by('id'))
-        # Проверяем количество заметок.
-        self.assertEqual(object_list.count(), self.COUNT_NOTES)
-
-    def test_detail_note(self):
-        """Контент на странице заметки."""
-        # Сохраняем в переменную адрес страницы с заметкой.
-        url = reverse('notes:detail', args=(self.note.slug,))
-        # Загружаем страницу с заметкой.
-        response = self.author_client.get(url)
-        # Получаем объект из контекста.
-        object = response.context['object']
-        # Сравниваем объект с выгруженной из БД заметкой.
-        self.assertEqual(object, self.note)
+        url = reverse('notes:list')
+        for user, status in users:
+            with self.subTest(user=user):
+                # Загружаем страницу с заметками.
+                response = user.get(url)
+                # Получаем объекты из контекста.
+                object_list = response.context['object_list']
+                # Проверяем истинность утверждения "заметка есть в списке".
+                self.assertEqual(self.note in object_list, status)
 
     def test_author_has_form(self):
         """При создании и редактировании заметки автору передается форма."""
@@ -84,6 +69,17 @@ class TestNotes(TestCase):
                 # классу формы.
                 self.assertIsInstance(response.context['form'], NoteForm)
 
+    def test_detail_note(self):
+        """Контекст на странице заметки."""
+        # Сохраняем в переменную адрес страницы с заметкой.
+        url = reverse('notes:detail', args=(self.note.slug,))
+        # Загружаем страницу с заметкой.
+        response = self.author_client.get(url)
+        # Получаем объект из контекста.
+        object = response.context['object']
+        # Сравниваем объект с заметкой фикстуры.
+        self.assertEqual(object, self.note)
+
     def test_delete_note(self):
         """Автору передается контекст при удалении заметки."""
         # Сохраняем в переменную адрес страницы удаления заметки.
@@ -95,7 +91,6 @@ class TestNotes(TestCase):
 
     def test_anonymous_client_has_not_form(self):
         """Анонимному пользователю контекст не передается."""
-        # Сохраняем в кортеж страницы создания и редактирования заметки.
         urls = (
             ('notes:add', None),
             ('notes:edit', (self.note.slug,)),

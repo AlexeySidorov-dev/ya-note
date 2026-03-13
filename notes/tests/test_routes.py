@@ -1,4 +1,4 @@
-"""Тестирование маршрутов проекта yanote."""
+"""Тестирование (unittest) маршрутов проекта yanote."""
 
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
@@ -34,17 +34,20 @@ class TestRoutes(TestCase):
             ('notes:home'),  # Главная страница.
             ('users:login'),  # Войти.
             ('users:signup'),  # Регистрация.
+            ('users:logout'),  # Выход.
         )
         for name in urls:
             with self.subTest(name=name):
                 url = reverse(name)
-                response = self.client.get(url)
+                if name == 'users:logout':
+                    response = self.client.post(url)  # Выполняем post запрос.
+                else:
+                    response = self.client.get(url)  # Выполняем get запрос.
                 self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_pages_availability_for_client(self):
         """Доступность страниц для авторизованного пользователя."""
         urls = (
-            ('notes:home'),  # Главная страница.
             ('notes:list'),  # Список заметок.
             ('notes:add'),  # Новая заметка.
             ('notes:success'),  # Успешно.
@@ -78,12 +81,6 @@ class TestRoutes(TestCase):
                     url = reverse(name, args=slug)
                     response = self.client.get(url)
                     self.assertEqual(response.status_code, status)
-
-    def test_logout(self):
-        """Выход пользователя logout."""
-        url = reverse('users:logout')
-        response = self.client.post(url)
-        self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_redirect_for_anonymous_client(self):
         """Перенаправления для неавторизованного пользователя."""
