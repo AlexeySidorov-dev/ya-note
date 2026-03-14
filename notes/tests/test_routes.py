@@ -101,7 +101,7 @@ class TestRoutes(TestCase):
                 # Сохраняем адрес страницы логина (перенаправление на нее):
                 login_url = reverse('users:login')
                 url = reverse(name, args=slug)  # Формируем URL.
-                redirect_url = f'{login_url}?next={url}'  # Якорь.
+                redirect_url = f'{login_url}?next={url}'  # Страница редиректа.
                 response = self.client.get(url)  # Выполняем get запрос.
                 # Проверяем редирект:
                 self.assertRedirects(response, redirect_url)

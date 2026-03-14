@@ -17,6 +17,8 @@ ADD_URL = reverse('notes:add')
 
 def test_empty_slug(author_client, form_data):
     """Проверка генерации slug из title."""
+    # Фиксируем в переменной, количество заметок до запроса:
+    count_notes_before = Note.objects.count()
     # Убираем поле slug из словаря:
     form_data.pop('slug')
     # POST запрос на создание заметки без slug:
@@ -24,12 +26,10 @@ def test_empty_slug(author_client, form_data):
     # Проверяем, что даже без slug заметка была создана.
     # Проверяем, что был выполнен редирект на страницу 'успешно':
     assertRedirects(response, REDIRECT_URL)
-    # Фиксируем в переменной, количество созданных записей:
-    count_notes = 1
-    # Получаем количество заметок из БД:
-    count_notes_from_db = Note.objects.count()
+    # Получаем количество заметок из БД после запроса:
+    count_notes_after = Note.objects.count()
     # Проверяем количество заметок:
-    assert count_notes_from_db == count_notes
+    assert count_notes_before != count_notes_after
     # Получаем созданную заметку из базы:
     new_note = Note.objects.get()
     # Формируем ожидаемый slug:
@@ -41,8 +41,8 @@ def test_empty_slug(author_client, form_data):
 # Вызываем фикстуру отдельной заметки, чтобы в базе появилась запись.
 def test_not_unique_slug(author_client, note, form_data):
     """Проверка уникальности slug."""
-    # Фиксируем в переменной, количество созданных записей:
-    count_notes = 1  # Создана в фикстуре node.
+    # Фиксируем в переменной, количество заметок до запроса:
+    count_notes_before = Note.objects.count()
     # Подменяем slug новой заметки на slug уже существующей записи:
     form_data['slug'] = note.slug
     # Пытаемся создать новую заметку:
@@ -50,24 +50,24 @@ def test_not_unique_slug(author_client, note, form_data):
     # Проверяем, что в ответе содержится ошибка формы для поля slug:
     assertFormError(response.context['form'], 'slug',
                     errors=(note.slug + WARNING))
-    # Получаем количество заметок из БД:
-    count_notes_from_db = Note.objects.count()
+    # Получаем количество заметок из БД после запроса:
+    count_notes_after = Note.objects.count()
     # Убеждаемся, что заметка не создана:
-    assert count_notes_from_db == count_notes
+    assert count_notes_before == count_notes_after
 
 
 def test_user_can_create_note(author_client, author, form_data):
     """Авторизованный пользователь может создавать заметку."""
+    # Фиксируем в переменной, количество заметок до запроса:
+    count_notes_before = Note.objects.count()
     # В POST-запросе отправляем данные, полученные из фикстуры form_data:
     response = author_client.post(ADD_URL, data=form_data)
     # Проверяем, что был выполнен редирект на страницу 'успешно':
     assertRedirects(response, REDIRECT_URL)
-    # Фиксируем в переменной, количество созданных записей:
-    count_notes = 1
-    # Получаем количество заметок из БД:
-    note_count_from_db = Note.objects.count()
+    # Получаем количество заметок из БД после запроса:
+    note_count_after = Note.objects.count()
     # Убеждаемся, что заметка создана:
-    assert note_count_from_db == count_notes
+    assert count_notes_before != note_count_after
     # Получаем объект заметки из БД:
     new_note = Note.objects.get()
     # Сверяем атрибуты объекта с ожидаемыми.
@@ -80,18 +80,18 @@ def test_user_can_create_note(author_client, author, form_data):
 @pytest.mark.django_db
 def test_anonymous_user_cant_create_note(client, form_data):
     """Анонимный пользователь не может создавать заметку."""
+    # Фиксируем в переменной, количество заметок до запроса:
+    count_notes_before = Note.objects.count()
     # Через анонимного клиента пытаемся создать заметку:
     response = client.post(ADD_URL, data=form_data)
     login_url = reverse('users:login')
     expected_url = f'{login_url}?next={ADD_URL}'
     # Проверяем, что редирект привёл к странице логина:
     assertRedirects(response, expected_url)
-    # Фиксируем в переменной, что заметка не создана:
-    count_notes = 0
-    # Получаем количество заметок из БД:
-    note_count_from_db = Note.objects.count()
+    # Получаем количество заметок из БД после запроса:
+    note_count_after = Note.objects.count()
     # Убеждаемся, что заметка не создана:
-    assert note_count_from_db == count_notes
+    assert count_notes_before == note_count_after
 
 
 # В параметрах вызвана фикстура note: значит, в БД создана заметка.
@@ -131,31 +131,31 @@ def test_author_can_delete_note(author_client, slug_for_args):
     """Автор может удалить свою заметку."""
     # Страница удаления заметки:
     url = reverse('notes:delete', args=slug_for_args)
+    # Фиксируем в переменной, количество заметок до запроса:
+    count_notes_before = Note.objects.count()
     # От имени автора заметки отправляем DELETE-запрос на удаление:
     response = author_client.delete(url)
     # Проверяем, что был выполнен редирект на страницу 'успешно':
     assertRedirects(response, REDIRECT_URL)
     # Проверяем статус-код ответа:
     assert response.status_code == HTTPStatus.FOUND
-    # Фиксируем в переменной, что заметка удалена:
-    count_notes = 0
-    # Получаем количество заметок из БД:
-    note_count_from_db = Note.objects.count()
+    # Получаем количество заметок из БД после запроса:
+    note_count_after = Note.objects.count()
     # Убеждаемся, что заметка удалена:
-    assert note_count_from_db == count_notes
+    assert count_notes_before != note_count_after
 
 
 def test_other_user_cant_delete_note(not_author_client, slug_for_args):
     """Пользователь не может удалить заметку другого автора."""
     # Страница удаления заметки:
     url = reverse('notes:delete', args=slug_for_args)
+    # Фиксируем в переменной, количество заметок до запроса:
+    count_notes_before = Note.objects.count()
     # От имени не автора заметки отправляем DELETE-запрос на удаление:
     response = not_author_client.post(url)
     # Проверяем статус-код ответа:
     assert response.status_code == HTTPStatus.NOT_FOUND
-    # Фиксируем в переменной, что заметка не удалена:
-    count_notes = 1
-    # Получаем количество заметок из БД:
-    note_count_from_db = Note.objects.count()
+    # Получаем количество заметок из БД после запроса:
+    note_count_after = Note.objects.count()
     # Убеждаемся, что заметка не удалена:
-    assert note_count_from_db == count_notes
+    assert count_notes_before == note_count_after

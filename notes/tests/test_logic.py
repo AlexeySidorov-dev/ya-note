@@ -13,12 +13,12 @@ from notes.forms import WARNING
 User = get_user_model()
 
 # Название и текст заметок вынесем в константы модуля.
-NOTE_TITLE = 'Заметка'
-NOTE_TEXT = 'Текст заметки'
-NOTE_SLUG = 'slug'
-NEW_NOTE_TITLE = 'Новая заметка'
-NEW_NOTE_TEXT = 'Новый текст заметки'
-NEW_NOTE_SLUG = 'new-slug'
+NOTE_TITLE: str = 'Заметка'
+NOTE_TEXT: str = 'Текст заметки'
+NOTE_SLUG: str = 'slug'
+NEW_NOTE_TITLE: str = 'Новая заметка'
+NEW_NOTE_TEXT: str = 'Новый текст заметки'
+NEW_NOTE_SLUG: str = 'new-slug'
 
 # Страница редиректа:
 REDIRECT_URL = reverse('notes:success')
@@ -76,8 +76,8 @@ class TestSlug(TestCase):
                             text=NOTE_TEXT,
                             slug=NOTE_SLUG,
                             author=self.author)
-        # Фиксируем количество созданных заметок:
-        count_notes = 1
+        # Фиксируем в переменной, количество заметок до запроса:
+        count_notes_before = Note.objects.count()
         # Создаем вторую заметку с тем же slug:
         response = self.author_client.post(ADD_URL,
                                            data=self.form_data_exist_slug)
@@ -86,23 +86,23 @@ class TestSlug(TestCase):
             response.context['form'],
             'slug',
             errors=(self.form_data_exist_slug['slug'] + WARNING))
-        # Получаем количество заметок из БД:
-        count_notes_from_db = Note.objects.count()
+        # Получаем количество заметок из БД после запроса:
+        count_notes_after = Note.objects.count()
         # Убеждаемся, что заметка не создана:
-        self.assertEqual(count_notes_from_db, count_notes)
+        self.assertEqual(count_notes_before, count_notes_after)
 
     def test_user_can_create_note(self):
         """Авторизованный пользователь может создавать заметки."""
+        # Фиксируем в переменной, количество заметок до запроса:
+        count_notes_before = Note.objects.count()
         # В POST-запросе отправляем данные, полученные из фикстуры form_data:
         response = self.author_client.post(ADD_URL, data=self.form_data)
         # Проверяем, что редирект привёл к странице 'успешно':
         self.assertRedirects(response, REDIRECT_URL)
-        # Фиксируем в переменной, количество созданных записей:
-        count_notes = 1
-        # Получаем количество заметок из БД:
-        count_notes_from_db = Note.objects.count()
+        # Получаем количество заметок из БД после запроса:
+        count_notes_after = Note.objects.count()
         # Убеждаемся, что заметка создана:
-        self.assertEqual(count_notes_from_db, count_notes)
+        self.assertNotEqual(count_notes_before, count_notes_after)
         # Получаем объект заметки из БД:
         new_note = Note.objects.get()
         # Сверяем атрибуты объекта с ожидаемыми.
@@ -113,18 +113,18 @@ class TestSlug(TestCase):
 
     def test_anonymous_user_cant_create_note(self):
         """Анонимный пользователь не может создавать заметки."""
+        # Фиксируем в переменной, количество заметок до запроса:
+        count_notes_before = Note.objects.count()
         # Через анонимного клиента пытаемся создать заметку:
         response = self.client.post(ADD_URL, data=self.form_data)
         # Проверяем, что редирект привёл к странице логина:
         login_url = reverse('users:login')
         expected_url = f'{login_url}?next={ADD_URL}'
         self.assertRedirects(response, expected_url)
-        # Фиксируем в переменной, что заметка не создана:
-        count_notes = 0
-        # Получаем количество заметок из БД:
-        note_count_from_db = Note.objects.count()
+        # Получаем количество заметок из БД после запроса:
+        note_count_after = Note.objects.count()
         # Убеждаемся, что заметка не создана:
-        self.assertEqual(note_count_from_db, count_notes)
+        self.assertEqual(count_notes_before, note_count_after)
 
 
 class TestNodeEditDelete(TestCase):
@@ -187,27 +187,27 @@ class TestNodeEditDelete(TestCase):
 
     def test_author_can_delete_note(self):
         """Автор может удалить свою заметку."""
+        # Фиксируем в переменной, количество заметок до запроса:
+        count_notes_before = Note.objects.count()
         # От имени автора заметки отправляем DELETE-запрос на удаление:
         response = self.author_client.delete(self.delete_url)
         # Проверяем, что редирект привёл к странице 'успешно':
         self.assertRedirects(response, REDIRECT_URL)
         # Проверяем статус-код ответа:
         self.assertEqual(response.status_code, HTTPStatus.FOUND)
-        # Фиксируем в переменной, что заметка удалена:
-        count_notes = 0
-        # Получаем количество заметок из БД:
-        note_count_from_db = Note.objects.count()
+        # Получаем количество заметок из БД после запроса:
+        note_count_after = Note.objects.count()
         # Убеждаемся, что заметка удалена:
-        self.assertEqual(note_count_from_db, count_notes)
+        self.assertNotEqual(count_notes_before, note_count_after)
 
     def test_user_cant_delete_note_of_another_user(self):
         """Пользователь не может удалить заметку другого автора."""
+        # Фиксируем в переменной, количество заметок до запроса:
+        count_notes_before = Note.objects.count()
         # От имени не автора заметки отправляем DELETE-запрос на удаление:
         response = self.reader_client.delete(self.delete_url)
         # Проверяем статус-код ответа:
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
-        # Фиксируем в переменной, что заметка не удалена:
-        count_notes = 1
-        # Получаем количество заметок из БД:
-        note_count_from_db = Note.objects.count()
-        self.assertEqual(note_count_from_db, count_notes)
+        # Получаем количество заметок из БД после запроса:
+        note_count_after = Note.objects.count()
+        self.assertEqual(count_notes_before, note_count_after)

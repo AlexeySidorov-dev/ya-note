@@ -68,10 +68,10 @@ def test_pages_availability_for_different_users(
 )
 def test_redirects_for_anonymous_user(client, name, args):
     """Проверка редиректа для неавторизованного пользователя."""
-    # Сохраняем адрес страницы логина (перенаправление на нее).
+    # Сохраняем адрес страницы логина (перенаправление на нее):
     login_url = reverse('users:login')
     url = reverse(name, args=args)  # Формируем URL.
-    expected_url = f'{login_url}?next={url}'  # Якорь.
+    expected_url = f'{login_url}?next={url}'  # Страница редиректа.
     response = client.get(url)  # Выполняем get запрос.
     # Ожидаем, что со всех проверяемых страниц анонимный клиент
     # будет перенаправлен на страницу логина:
